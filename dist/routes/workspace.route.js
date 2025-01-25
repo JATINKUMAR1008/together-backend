@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const workspace_controller_1 = require("../controllers/workspace.controller");
+const workspaceRouter = (0, express_1.Router)();
+workspaceRouter.post("/create/new", workspace_controller_1.createWorkspaceController);
+workspaceRouter.put("/update/:id", workspace_controller_1.updateWorkspaceByIdController);
+workspaceRouter.put("/change/member/role/:id", workspace_controller_1.changeWorkspaceMemberRoleController);
+workspaceRouter.delete("/delete/:id", workspace_controller_1.deleteWorkspaceByIdController);
+workspaceRouter.get("/all", workspace_controller_1.getAllWorkspacesUserIsMemberController);
+workspaceRouter.get("/members/:id", workspace_controller_1.getWorkspaceMembersController);
+workspaceRouter.get("/analytics/:id", workspace_controller_1.getWorkspaceAnalyticsController);
+workspaceRouter.get("/:id", workspace_controller_1.getWorkspaceByIdController);
+exports.default = workspaceRouter;
