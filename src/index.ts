@@ -39,6 +39,7 @@ app.use(
   cors({
     origin: config.FRONTEND_ORIGIN,
     credentials: true,
+    allowedHeaders: ["*"]
   })
 );
 
