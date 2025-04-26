@@ -29,17 +29,30 @@ app.use(cookieParser(config.COOKIE_SECRET));
 app.use(passport.initialize());
 
 // Configure CORS properly for both development and production
-app.use(
-  cors({
-    origin: config.FRONTEND_ORIGIN,
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    exposedHeaders: ["Set-Cookie", "Access-Control-Allow-Credentials"]
-  })
-);
+// Log frontend origin for debugging
+console.log('Configuring CORS with frontend origin:', config.FRONTEND_ORIGIN);
 
-// Set necessary headers for cross-domain cookies
+// Enable CORS with credentials
+app.use(cors({
+  origin: config.FRONTEND_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  exposedHeaders: ['Set-Cookie']
+}));
+
+// Add explicit CORS headers for preflight
+app.options('*', (req, res) => {
+  // These headers are critical for cookies
+  res.header('Access-Control-Allow-Origin', config.FRONTEND_ORIGIN);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  res.status(204).end();
+});
+
+// One more middleware to ensure credentials header is present
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   next();

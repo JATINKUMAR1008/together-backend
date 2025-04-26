@@ -14,6 +14,7 @@ const appConfig = () =>({
     
     // Cookie Configuration
     COOKIE_SECRET: getEnv("COOKIE_SECRET", "your-cookie-secret"),
+    COOKIE_DOMAIN: getEnv("COOKIE_DOMAIN", ""), // Leave empty for default behavior
     
     // For OAuth (Google auth) - can be removed if not using
     GOOGLE_CLIENT_ID: getEnv("GOOGLE_CLIENT_ID"),

@@ -113,8 +113,12 @@ export const logOutController = asyncHandler(
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' as const : 'lax' as const,
+      domain: config.COOKIE_DOMAIN || undefined,
       path: '/'
     };
+    
+    // Log for debugging
+    console.log('Clearing cookies with options:', JSON.stringify(cookieOptions));
     
     res.clearCookie('access_token', cookieOptions);
     res.clearCookie('refresh_token', cookieOptions);
@@ -129,14 +133,22 @@ export const logOutController = asyncHandler(
 const setCookies = (res: Response, accessToken: string, refreshToken: string) => {
   // Configure cookie options based on environment
   const isProduction = config.NODE_ENV === 'production';
+  
+  // Log for debugging
+  console.log('Setting cookies with environment:', isProduction ? 'production' : 'development');
+  console.log('Frontend origin:', config.FRONTEND_ORIGIN);
+  
   const cookieOptions = {
     httpOnly: true,
     secure: isProduction, // HTTPS in production
     sameSite: isProduction ? 'none' as const : 'lax' as const,
-    // Remove domain setting for cross-origin cookies in production
+    domain: config.COOKIE_DOMAIN || undefined, // Use configured domain if any
     path: '/',
     maxAge: undefined as number | undefined
   };
+  
+  // Log cookie options
+  console.log('Cookie options:', JSON.stringify(cookieOptions));
   
   // Set access token cookie with shorter expiration
   res.cookie('access_token', accessToken, {
@@ -175,14 +187,19 @@ export const refreshTokenController = asyncHandler(
       
       // Set only the access token cookie
       const isProduction = config.NODE_ENV === 'production';
-      res.cookie('access_token', accessToken, {
+      const cookieOptions = {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' as const : 'lax' as const,
-        // Remove domain setting for cross-origin cookies in production
+        domain: config.COOKIE_DOMAIN || undefined,
         path: '/',
         maxAge: 24 * 60 * 60 * 1000, // 1 day
-      });
+      };
+      
+      // Log for debugging
+      console.log('Refresh - setting access_token with options:', JSON.stringify(cookieOptions));
+      
+      res.cookie('access_token', accessToken, cookieOptions);
       
       return res.status(HTTPSTATUS.OK).json({
         message: "Token refreshed successfully"
