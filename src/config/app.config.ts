@@ -21,7 +21,17 @@ const appConfig = () =>({
     GOOGLE_CLIENT_SECRET: getEnv("GOOGLE_CLIENT_SECRET"),
     GOOGLE_CALLBACK_URL: getEnv("GOOGLE_CALLBACK_URL"),
 
-    FRONTEND_ORIGIN: getEnv("FRONTEND_ORIGIN","http://localhost:3000"),
+    // Handle FRONTEND_ORIGIN properly - could be a single domain or a JSON array of domains
+    FRONTEND_ORIGIN: (() => {
+        const origin = getEnv("FRONTEND_ORIGIN","http://localhost:3000");
+        try {
+            // Check if it's a JSON array
+            return JSON.parse(origin);
+        } catch (e) {
+            // Not a JSON array, return as is
+            return origin;
+        }
+    })(),
     FRONTEND_GOOGLE_CALLBACK_URL: getEnv("FRONTEND_GOOGLE_CALLBACK_URL","http://localhost:3000/auth/google/callback"),
 })
 

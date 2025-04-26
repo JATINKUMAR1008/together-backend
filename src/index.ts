@@ -32,9 +32,34 @@ app.use(passport.initialize());
 // Log frontend origin for debugging
 console.log('Configuring CORS with frontend origin:', config.FRONTEND_ORIGIN);
 
+// Log the FRONTEND_ORIGIN value for debugging
+console.log('FRONTEND_ORIGIN value:', typeof config.FRONTEND_ORIGIN, config.FRONTEND_ORIGIN);
+
 // Enable CORS with credentials
 app.use(cors({
-  origin: config.FRONTEND_ORIGIN,
+  origin: function(origin, callback) {
+    console.log('Request from origin:', origin);
+    
+    // Handle allowing origins from our allowed list
+    if (!origin) {
+      // Allow requests with no origin (like mobile apps, curl, etc)
+      callback(null, true);
+      return;
+    }
+    
+    // Handle both array and string FRONTEND_ORIGIN
+    const allowedOrigins = Array.isArray(config.FRONTEND_ORIGIN) 
+      ? config.FRONTEND_ORIGIN 
+      : [config.FRONTEND_ORIGIN];
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || config.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.log('Origin not allowed by CORS:', origin);
+      console.log('Allowed origins:', allowedOrigins);
+      callback(new Error('Not allowed by CORS'), false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
@@ -43,8 +68,18 @@ app.use(cors({
 
 // Add explicit CORS headers for preflight
 app.options('*', (req, res) => {
-  // These headers are critical for cookies
-  res.header('Access-Control-Allow-Origin', config.FRONTEND_ORIGIN);
+  const origin = req.headers.origin;
+  
+  // Handle both array and string FRONTEND_ORIGIN
+  const allowedOrigins = Array.isArray(config.FRONTEND_ORIGIN) 
+    ? config.FRONTEND_ORIGIN 
+    : [config.FRONTEND_ORIGIN];
+  
+  // Only set Allow-Origin for origins in our list
+  if (origin && (allowedOrigins.indexOf(origin) !== -1 || config.NODE_ENV !== 'production')) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');

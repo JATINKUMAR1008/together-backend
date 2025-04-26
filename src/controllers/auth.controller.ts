@@ -117,8 +117,10 @@ export const logOutController = asyncHandler(
       path: '/'
     };
     
-    // Log for debugging
-    console.log('Clearing cookies with options:', JSON.stringify(cookieOptions));
+    // Enhanced logging for cookie clearing
+    console.log('💡 LOGOUT - Clearing cookies');
+    console.log('💡 LOGOUT - Cookie options:', JSON.stringify(cookieOptions, null, 2));
+    console.log('💡 LOGOUT - Request path:', res.req.path);
     
     res.clearCookie('access_token', cookieOptions);
     res.clearCookie('refresh_token', cookieOptions);
@@ -134,9 +136,11 @@ const setCookies = (res: Response, accessToken: string, refreshToken: string) =>
   // Configure cookie options based on environment
   const isProduction = config.NODE_ENV === 'production';
   
-  // Log for debugging
-  console.log('Setting cookies with environment:', isProduction ? 'production' : 'development');
-  console.log('Frontend origin:', config.FRONTEND_ORIGIN);
+  // Enhanced debugging for cookie setting
+  console.log('💡 COOKIE SETUP - Environment:', isProduction ? 'production' : 'development');
+  console.log('💡 COOKIE SETUP - Frontend origin:', config.FRONTEND_ORIGIN);
+  console.log('💡 COOKIE SETUP - Request path:', res.req.path);
+  console.log('💡 COOKIE SETUP - Cookie domain:', config.COOKIE_DOMAIN || 'Not set');
   
   const cookieOptions = {
     httpOnly: true,
@@ -147,8 +151,10 @@ const setCookies = (res: Response, accessToken: string, refreshToken: string) =>
     maxAge: undefined as number | undefined
   };
   
-  // Log cookie options
-  console.log('Cookie options:', JSON.stringify(cookieOptions));
+  // Enhanced logging for cookie options
+  console.log('💡 COOKIE OPTIONS:', JSON.stringify(cookieOptions, null, 2));
+  console.log('💡 SETTING ACCESS COOKIE with token length:', accessToken.length);
+  console.log('💡 SETTING REFRESH COOKIE with token length:', refreshToken.length);
   
   // Set access token cookie with shorter expiration
   res.cookie('access_token', accessToken, {
@@ -196,8 +202,10 @@ export const refreshTokenController = asyncHandler(
         maxAge: 24 * 60 * 60 * 1000, // 1 day
       };
       
-      // Log for debugging
-      console.log('Refresh - setting access_token with options:', JSON.stringify(cookieOptions));
+      // Enhanced logging for token refresh
+      console.log('💡 TOKEN REFRESH - Setting access_token cookie');
+      console.log('💡 TOKEN REFRESH - Cookie options:', JSON.stringify(cookieOptions, null, 2));
+      console.log('💡 TOKEN REFRESH - Token length:', accessToken.length);
       
       res.cookie('access_token', accessToken, cookieOptions);
       
