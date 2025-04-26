@@ -26,20 +26,23 @@ app.use(
     name: "session",
     keys: [config.SESSION_SECRET],
     maxAge: 24 * 60 * 60 * 1000, // 1 day
-    secure: config.NODE_ENV === "production", // Only send cookies over HTTPS in production // Prevent client-side JavaScript from accessing the cookie
-    sameSite: "none"
-    // Required for cross-origin requestsx
+    secure: config.NODE_ENV === "production", // Only send cookies over HTTPS in production
+    sameSite: config.NODE_ENV === "production" ? "none" : "lax", // Use 'none' for cross-origin in production, 'lax' for development
+    httpOnly: true // Prevent client-side JavaScript from accessing the cookie
   })
 );
 
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Configure CORS properly for both development and production
 app.use(
   cors({
     origin: config.FRONTEND_ORIGIN,
     credentials: true,
-    allowedHeaders: ["*"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Set-Cookie"]
   })
 );
 
