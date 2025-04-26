@@ -27,7 +27,9 @@ app.use(
     keys: [config.SESSION_SECRET],
     maxAge: 24 * 60 * 60 * 1000, // 1 day
     secure: config.NODE_ENV === "production", // Only send cookies over HTTPS in production // Prevent client-side JavaScript from accessing the cookie
-    sameSite: "none", // Required for cross-origin requests
+    sameSite: "none",
+    httpOnly: true,
+    // Required for cross-origin requestsx
   })
 );
 
