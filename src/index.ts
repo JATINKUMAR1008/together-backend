@@ -33,11 +33,17 @@ app.use(
   cors({
     origin: config.FRONTEND_ORIGIN,
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    exposedHeaders: ["Set-Cookie"]
+    exposedHeaders: ["Set-Cookie", "Access-Control-Allow-Credentials"]
   })
 );
+
+// Set necessary headers for cross-domain cookies
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 app.use(`${BASE_PATH}/auth`, authRouter);
 // Use our custom authentication middleware

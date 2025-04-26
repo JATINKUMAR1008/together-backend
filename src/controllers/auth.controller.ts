@@ -1,10 +1,11 @@
 import { config } from "../config/app.config";
 import { asyncHandler } from "../middleware/asyncHandler.middleware";
-import { Request, Response, NextFunction } from "express";
-import { registerSchema, loginSchema } from "../validation/auth.validation";
+import { Request, Response } from 'express';
 import { registerUserService, verifyUserService } from "../services/auth.service";
 import { HTTPSTATUS } from "../config/http.config";
 import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt.utils";
+import passport from 'passport';
+import { registerSchema, loginSchema } from "../validation/auth.validation";
 
 export const googleLoginCallback = asyncHandler(
   async (req: Request, res: Response) => {
@@ -106,9 +107,17 @@ export const loginController = asyncHandler(
 
 export const logOutController = asyncHandler(
   async (req: Request, res: Response) => {
-    // Clear cookies
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+    // Clear cookies with same settings as when they were set
+    const isProduction = config.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
+      path: '/'
+    };
+    
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
     
     return res
       .status(HTTPSTATUS.OK)
@@ -124,7 +133,7 @@ const setCookies = (res: Response, accessToken: string, refreshToken: string) =>
     httpOnly: true,
     secure: isProduction, // HTTPS in production
     sameSite: isProduction ? 'none' as const : 'lax' as const,
-    domain: isProduction ? '.yourdomain.com' : undefined, // Set your production domain
+    // Remove domain setting for cross-origin cookies in production
     path: '/',
     maxAge: undefined as number | undefined
   };
@@ -170,7 +179,7 @@ export const refreshTokenController = asyncHandler(
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' as const : 'lax' as const,
-        domain: isProduction ? '.yourdomain.com' : undefined,
+        // Remove domain setting for cross-origin cookies in production
         path: '/',
         maxAge: 24 * 60 * 60 * 1000, // 1 day
       });
