@@ -1,23 +1,40 @@
 import { config } from "../config/app.config";
 import { asyncHandler } from "../middleware/asyncHandler.middleware";
-import { NextFunction, Request, Response } from "express";
-import { registerSchema } from "../validation/auth.validation";
-import { registerUserService } from "../services/auth.service";
+import { Request, Response, NextFunction } from "express";
+import { registerSchema, loginSchema } from "../validation/auth.validation";
+import { registerUserService, verifyUserService } from "../services/auth.service";
 import { HTTPSTATUS } from "../config/http.config";
-import passport from "passport";
+import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt.utils";
 
 export const googleLoginCallback = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentWorkspace = req.user?.currentWorkspace;
-
-    if (!currentWorkspace) {
+    const user = req.user;
+    
+    if (!user || !user._id) {
       return res.redirect(
         `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`
       );
     }
-
+    
+    // Generate JWT tokens
+    const accessToken = generateToken({
+      userId: String(user._id),
+      workspaceId: user.currentWorkspace ? String(user.currentWorkspace) : undefined,
+      email: user.email
+    });
+    
+    const refreshToken = generateRefreshToken({
+      userId: String(user._id),
+      workspaceId: user.currentWorkspace ? String(user.currentWorkspace) : undefined,
+      email: user.email
+    });
+    
+    // Set cookies
+    setCookies(res, accessToken, refreshToken);
+    
+    // Redirect to frontend with the currentWorkspace
     return res.redirect(
-      `${config.FRONTEND_ORIGIN}/workspace/${currentWorkspace}`
+      `${config.FRONTEND_ORIGIN}/workspace/${user.currentWorkspace}`
     );
   }
 );
@@ -28,62 +45,147 @@ export const registerUserController = asyncHandler(
       ...req.body,
     });
 
-    await registerUserService(body);
+    const result = await registerUserService(body);
+    
+    // Generate tokens
+    const accessToken = generateToken({
+      userId: String(result.userId),
+      workspaceId: String(result.workspaceId)
+    });
+    
+    const refreshToken = generateRefreshToken({
+      userId: String(result.userId),
+      workspaceId: String(result.workspaceId)
+    });
+    
+    // Set cookies
+    setCookies(res, accessToken, refreshToken);
 
     return res.status(HTTPSTATUS.CREATED).json({
       message: "User created successfully",
+      userId: result.userId,
+      workspaceId: result.workspaceId
     });
   }
 );
 
 export const loginController = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate(
-      "local",
-      (
-        err: Error | null,
-        user: Express.User | false,
-        info: { message: string } | undefined
-      ) => {
-        if (err) {
-          return next(err);
-        }
-
-        if (!user) {
-          return res.status(HTTPSTATUS.UNAUTHORIZED).json({
-            message: info?.message || "Invalid email or password",
-          });
-        }
-
-        req.logIn(user, (err) => {
-          if (err) {
-            return next(err);
-          }
-
-          return res.status(HTTPSTATUS.OK).json({
-            message: "Logged in successfully",
-            user,
-          });
-        });
-      }
-    )(req, res, next);
+  async (req: Request, res: Response) => {
+    const { email, password } = loginSchema.parse(req.body);
+    
+    try {
+      const user = await verifyUserService({ email, password });
+      
+      // Generate tokens
+      const accessToken = generateToken({
+        userId: String(user._id),
+        workspaceId: user.currentWorkspace ? String(user.currentWorkspace) : undefined,
+        email: user.email
+      });
+      
+      const refreshToken = generateRefreshToken({
+        userId: String(user._id),
+        workspaceId: user.currentWorkspace ? String(user.currentWorkspace) : undefined,
+        email: user.email
+      });
+      
+      // Set cookies
+      setCookies(res, accessToken, refreshToken);
+      
+      return res.status(HTTPSTATUS.OK).json({
+        message: "Logged in successfully",
+        user
+      });
+    } catch (error) {
+      return res.status(HTTPSTATUS.UNAUTHORIZED).json({
+        message: error instanceof Error ? error.message : "Invalid email or password"
+      });
+    }
   }
 );
 
 export const logOutController = asyncHandler(
   async (req: Request, res: Response) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res
-          .status(HTTPSTATUS.INTERNAL_SERVER_ERROR)
-          .json({ error: "Failed to log out" });
-      }
-    });
-
-    req.session = null;
+    // Clear cookies
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+    
     return res
       .status(HTTPSTATUS.OK)
       .json({ message: "Logged out successfully" });
+  }
+);
+
+// Helper function to set authentication cookies
+const setCookies = (res: Response, accessToken: string, refreshToken: string) => {
+  // Configure cookie options based on environment
+  const isProduction = config.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction, // HTTPS in production
+    sameSite: isProduction ? 'none' as const : 'lax' as const,
+    domain: isProduction ? '.yourdomain.com' : undefined, // Set your production domain
+    path: '/',
+    maxAge: undefined as number | undefined
+  };
+  
+  // Set access token cookie with shorter expiration
+  res.cookie('access_token', accessToken, {
+    ...cookieOptions,
+    maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+  });
+  
+  // Set refresh token cookie with longer expiration
+  res.cookie('refresh_token', refreshToken, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  });
+};
+
+// Add token refresh endpoint
+export const refreshTokenController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const refreshToken = req.cookies.refresh_token;
+    
+    if (!refreshToken) {
+      return res.status(HTTPSTATUS.UNAUTHORIZED).json({
+        message: "Refresh token not found"
+      });
+    }
+    
+    try {
+      // Verify refresh token using the util function
+      const decoded = verifyRefreshToken(refreshToken);
+      
+      // Generate new access token
+      const accessToken = generateToken({
+        userId: decoded.userId,
+        workspaceId: decoded.workspaceId,
+        email: decoded.email
+      });
+      
+      // Set only the access token cookie
+      const isProduction = config.NODE_ENV === 'production';
+      res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' as const : 'lax' as const,
+        domain: isProduction ? '.yourdomain.com' : undefined,
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+      });
+      
+      return res.status(HTTPSTATUS.OK).json({
+        message: "Token refreshed successfully"
+      });
+    } catch (error) {
+      // Clear cookies on refresh token failure
+      res.clearCookie('access_token');
+      res.clearCookie('refresh_token');
+      
+      return res.status(HTTPSTATUS.UNAUTHORIZED).json({
+        message: "Invalid refresh token"
+      });
+    }
   }
 );

@@ -1,15 +1,16 @@
 import "dotenv/config";
 import express from "express";
-import session from "cookie-session";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import { config } from "./config/app.config";
 import connectDatabase from "./config/database.config";
 import { errorHandler } from "./middleware/errorHandler.middleware";
-import "./config/passport.config";
 import passport from "passport";
+// Import the existing Passport configuration
+import "./config/passport.config";
 import authRouter from "./routes/auth.route";
 import userRouter from "./routes/user.route";
-import isAuthenticated from "./middleware/isAuthenticated.middleware";
+import { authenticate } from "./middleware/auth.middleware";
 import workspaceRouter from "./routes/workspace.route";
 import projectRouter from "./routes/project.route";
 import taskRouter from "./routes/task.route";
@@ -21,19 +22,11 @@ const BASE_PATH = config.BASE_PATH;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  session({
-    name: "session",
-    keys: [config.SESSION_SECRET],
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-    secure: config.NODE_ENV === "production", // Only send cookies over HTTPS in production
-    sameSite: config.NODE_ENV === "production" ? "none" : "lax", // Use 'none' for cross-origin in production, 'lax' for development
-    httpOnly: true // Prevent client-side JavaScript from accessing the cookie
-  })
-);
+// Use cookie-parser middleware for handling cookies
+app.use(cookieParser(config.COOKIE_SECRET));
 
+// Initialize Passport (for Google OAuth only)
 app.use(passport.initialize());
-app.use(passport.session());
 
 // Configure CORS properly for both development and production
 app.use(
@@ -47,11 +40,12 @@ app.use(
 );
 
 app.use(`${BASE_PATH}/auth`, authRouter);
-app.use(`${BASE_PATH}/user`, isAuthenticated, userRouter);
-app.use(`${BASE_PATH}/workspace`, isAuthenticated, workspaceRouter);
-app.use(`${BASE_PATH}/project`, isAuthenticated, projectRouter);
-app.use(`${BASE_PATH}/task`, isAuthenticated, taskRouter);
-app.use(`${BASE_PATH}/member`, isAuthenticated, memberRouter);
+// Use our custom authentication middleware
+app.use(`${BASE_PATH}/user`, authenticate, userRouter);
+app.use(`${BASE_PATH}/workspace`, authenticate, workspaceRouter);
+app.use(`${BASE_PATH}/project`, authenticate, projectRouter);
+app.use(`${BASE_PATH}/task`, authenticate, taskRouter);
+app.use(`${BASE_PATH}/member`, authenticate, memberRouter);
 
 app.use(errorHandler);
 

@@ -6,9 +6,16 @@ const appConfig = () =>({
     BASE_PATH: getEnv("BASE_PATH","/api"),
     MONGO_URI: getEnv("MONGO_URI",""),
 
-    SESSION_SECRET: getEnv("SESSION_SECRET"),
-    SESSION_EXPIRES_IN: getEnv("SESSION_EXPIRES_IN","1d"),
-
+    // JWT Configuration
+    JWT_SECRET: getEnv("JWT_SECRET", "your-jwt-secret-key"),
+    JWT_EXPIRES_IN: getEnv("JWT_EXPIRES_IN", "1d"),
+    JWT_REFRESH_SECRET: getEnv("JWT_REFRESH_SECRET", "your-refresh-secret-key"),
+    JWT_REFRESH_EXPIRES_IN: getEnv("JWT_REFRESH_EXPIRES_IN", "7d"),
+    
+    // Cookie Configuration
+    COOKIE_SECRET: getEnv("COOKIE_SECRET", "your-cookie-secret"),
+    
+    // For OAuth (Google auth) - can be removed if not using
     GOOGLE_CLIENT_ID: getEnv("GOOGLE_CLIENT_ID"),
     GOOGLE_CLIENT_SECRET: getEnv("GOOGLE_CLIENT_SECRET"),
     GOOGLE_CALLBACK_URL: getEnv("GOOGLE_CALLBACK_URL"),
