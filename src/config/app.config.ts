@@ -12,6 +12,12 @@ const appConfig = () => ({
   JWT_REFRESH_SECRET: getEnv("JWT_REFRESH_SECRET", "your-refresh-secret-key"),
   JWT_REFRESH_EXPIRES_IN: getEnv("JWT_REFRESH_EXPIRES_IN", "7d"),
 
+    // Redis Configuration
+    REDIS_HOST: getEnv("REDIS_HOST", "localhost"),
+    REDIS_PORT: getEnv("REDIS_PORT", "6379"),
+    REDIS_PASSWORD: getEnv("REDIS_PASSWORD", ""), // Optional, leave empty if not set
+    REDIS_USERNAME: getEnv("REDIS_USERNAME", "0"), // Default Redis database
+
   // Cookie Configuration
   COOKIE_SECRET: getEnv("COOKIE_SECRET", "your-cookie-secret"),
   COOKIE_DOMAIN: getEnv("COOKIE_DOMAIN", ""), // Leave empty for default behavior

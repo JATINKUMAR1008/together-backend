@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import session from "cookie-session";
+import session from "express-session";
 import cors from "cors";
 import { config } from "./config/app.config";
 import connectDatabase from "./config/database.config";
@@ -14,6 +14,8 @@ import workspaceRouter from "./routes/workspace.route";
 import projectRouter from "./routes/project.route";
 import taskRouter from "./routes/task.route";
 import memberRouter from "./routes/member.route";
+import { RedisStore } from "connect-redis";
+import { createClient } from "redis";
 
 const app = express();
 const BASE_PATH = config.BASE_PATH;
@@ -24,15 +26,41 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const redisClient = createClient({
+  username: config.REDIS_USERNAME || "default",
+  password: config.REDIS_PASSWORD,
+  socket: {
+    host: config.REDIS_HOST,
+    port: 12745,
+  },
+});
+redisClient.connect().catch(console.error);
+
 // Session middleware configuration
+// app.use(
+//   session({
+//     name: "session",
+//     keys: [config.SESSION_SECRET],
+//     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+//     secure: config.NODE_ENV === "production",
+//     httpOnly: true,
+//     sameSite: "none",
+//   })
+// );
+
 app.use(
   session({
+    store: new RedisStore({ client: redisClient }),
     name: "session",
-    keys: [config.SESSION_SECRET],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: config.NODE_ENV === "production",
-    httpOnly: true,
-    sameSite: "none",
+    secret: config.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    },
   })
 );
 
