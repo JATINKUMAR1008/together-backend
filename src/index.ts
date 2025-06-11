@@ -22,10 +22,16 @@ const BASE_PATH = config.BASE_PATH;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Use cookie-parser middleware for handling cookies
-app.use(cookieParser(config.COOKIE_SECRET));
+app.use(
+  session({
+    name: "session",
+    keys: [config.SESSION_SECRET],
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    secure: config.NODE_ENV === "production", // Only send cookies over HTTPS in production // Prevent client-side JavaScript from accessing the cookie
+    sameSite: "none", // Required for cross-origin requests
+  })
+);
 
-// Initialize Passport (for Google OAuth only)
 app.use(passport.initialize());
 
 // Configure CORS properly for both development and production
