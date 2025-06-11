@@ -37,7 +37,7 @@ app.use(passport.session());
 
 app.use(
   cors({
-    origin: config.FRONTEND_ORIGIN,
+    origin: ["https://togethersync.vercel.app/", "http://localhost:3000"],
     credentials: true,
   })
 );
