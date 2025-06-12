@@ -53,7 +53,7 @@ app.use(
     secure: config.NODE_ENV === "production",
     httpOnly: true,
     sameSite: config.NODE_ENV === "production" ? "none" : "lax",
-    domain: config.NODE_ENV === "production" ? ".vercel.app" : undefined
+    domain: config.NODE_ENV === "production" ? undefined : undefined
   })
 );
 
