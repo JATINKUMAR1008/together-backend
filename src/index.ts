@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import session from "express-session";
+import session from "cookie-session";
 import cors from "cors";
 import { config } from "./config/app.config";
 import connectDatabase from "./config/database.config";
@@ -36,46 +36,29 @@ const redisClient = createClient({
 });
 redisClient.connect().catch(console.error);
 
-// Session middleware configuration
-// app.use(
-//   session({
-//     name: "session",
-//     keys: [config.SESSION_SECRET],
-//     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-//     secure: config.NODE_ENV === "production",
-//     httpOnly: true,
-//     sameSite: "none",
-//   })
-// );
+// CORS configuration for Vercel frontend
+app.use(
+  cors({
+    origin: ["https://togethersync.vercel.app", "http://localhost:5173"],
+    credentials: true,
+  })
+);
 
+// Session middleware configuration
 app.use(
   session({
-    store: new RedisStore({ client: redisClient }),
     name: "session",
-    secret: config.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: "none",
-      maxAge: 24 * 60 * 60 * 1000,
-      path: "/",
-      domain: "togethersync.vercel.app",
-    },
+    keys: [config.SESSION_SECRET],
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: config.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+    domain: config.NODE_ENV === "production" ? ".vercel.app" : undefined
   })
 );
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-// CORS configuration for Vercel frontend
-app.use(
-  cors({
-    origin: ["https://togethersync.vercel.app", "http://localhost:3000"],
-    credentials: true,
-  })
-);
 
 // Routes
 app.use(`${BASE_PATH}/auth`, authRouter);

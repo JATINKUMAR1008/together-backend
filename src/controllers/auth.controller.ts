@@ -16,6 +16,7 @@ export const googleLoginCallback = asyncHandler(
       );
     }
 
+    // Session is already handled by cookie-session middleware
     return res.redirect(
       `${config.FRONTEND_ORIGIN}/workspace/${currentWorkspace}`
     );
@@ -60,6 +61,7 @@ export const loginController = asyncHandler(
             return next(err);
           }
 
+          // Session is already handled by cookie-session middleware
           return res.status(HTTPSTATUS.OK).json({
             message: "Logged in successfully",
             user,
@@ -79,19 +81,13 @@ export const logOutController = asyncHandler(
           .status(HTTPSTATUS.INTERNAL_SERVER_ERROR)
           .json({ error: "Failed to log out" });
       }
-    });
 
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Session destroy error:", err);
-        return res
-          .status(HTTPSTATUS.INTERNAL_SERVER_ERROR)
-          .json({ error: "Failed to destroy session" });
-      }
+      req.session = null as any;
+
       return res
         .status(HTTPSTATUS.OK)
+        .clearCookie("session")
         .json({ message: "Logged out successfully" });
     });
-    return;
   }
 );
