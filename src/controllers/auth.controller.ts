@@ -11,7 +11,9 @@ export const googleLoginCallback = asyncHandler(
     const currentWorkspace = req.user?.currentWorkspace;
 
     if (!currentWorkspace) {
-      console.log("No current workspace found for user, redirecting to failure URL");
+      console.log(
+        "No current workspace found for user, redirecting to failure URL"
+      );
       return res.redirect(
         `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`
       );
@@ -91,13 +93,11 @@ export const logOutController = asyncHandler(
           .status(HTTPSTATUS.INTERNAL_SERVER_ERROR)
           .json({ error: "Failed to log out" });
       }
-
-      req.session = null as any;
-
-      return res
-        .status(HTTPSTATUS.OK)
-        .clearCookie("session")
-        .json({ message: "Logged out successfully" });
     });
+
+    req.session = null as any;
+    return res
+      .status(HTTPSTATUS.OK)
+      .json({ message: "Logged out successfully" });
   }
 );
