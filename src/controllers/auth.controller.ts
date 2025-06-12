@@ -11,12 +11,16 @@ export const googleLoginCallback = asyncHandler(
     const currentWorkspace = req.user?.currentWorkspace;
 
     if (!currentWorkspace) {
+      console.log("No current workspace found for user, redirecting to failure URL");
       return res.redirect(
         `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`
       );
     }
 
     // Session is already handled by cookie-session middleware
+    console.log("Session ID after Google login:", req.session.id);
+    console.log("User data in session:", req.user);
+    console.log("Setting cookie with session data");
     return res.redirect(
       `${config.FRONTEND_ORIGIN}/workspace/${currentWorkspace}`
     );
@@ -47,10 +51,12 @@ export const loginController = asyncHandler(
         info: { message: string } | undefined
       ) => {
         if (err) {
+          console.error("Authentication error:", err);
           return next(err);
         }
 
         if (!user) {
+          console.log("Authentication failed:", info?.message);
           return res.status(HTTPSTATUS.UNAUTHORIZED).json({
             message: info?.message || "Invalid email or password",
           });
@@ -58,10 +64,14 @@ export const loginController = asyncHandler(
 
         req.logIn(user, (err) => {
           if (err) {
+            console.error("Login error:", err);
             return next(err);
           }
 
           // Session is already handled by cookie-session middleware
+          console.log("Session ID after login:", req.session.id);
+          console.log("User data in session:", user);
+          console.log("Setting cookie with session data");
           return res.status(HTTPSTATUS.OK).json({
             message: "Logged in successfully",
             user,
